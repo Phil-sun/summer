@@ -1,0 +1,81 @@
+name: test
+automanagednamespaces: 0
+namespace:
+  number: 10
+  prefix: test-yvbhgv
+  deletestalenamespaces: false
+  deleteautomanagednamespaces: true
+  enableexistingnamespaces: false
+steps:
+- phases: []
+  measurements:
+  - method: APIResponsivenessPrometheus
+    params:
+      action: start
+    identifier: APIResponsivenessPrometheus
+    instances: []
+  - method: APIResponsivenessPrometheus
+    params:
+      action: start
+    identifier: APIResponsivenessPrometheusSimple
+    instances: []
+  module:
+    path: ""
+    params: {}
+  name: Start measurements
+- phases:
+  - namespacerange:
+      min: 1
+      max: 10
+      basename: null
+    replicaspernamespace: 3
+    tuningset: Uniform1qps
+    objectbundle:
+    - basename: test-deployment
+      objecttemplatepath: deployment.yaml
+      templatefillmap:
+        Replicas: 10
+      listunknownobjectoptions: null
+    - basename: test-pp
+      objecttemplatepath: pp.yaml
+      templatefillmap:
+        Replicas: 1
+      listunknownobjectoptions: null
+  measurements: []
+  module:
+    path: ""
+    params: {}
+  name: Create deployment
+- phases: []
+  measurements:
+  - method: APIResponsivenessPrometheus
+    params:
+      action: gather
+      enableViolations: true
+      summaryName: APIResponsivenessPrometheus_simple
+      useSimpleLatencyQuery: true
+    identifier: APIResponsivenessPrometheusSimple
+    instances: []
+  - method: APIResponsivenessPrometheus
+    params:
+      action: gather
+    identifier: APIResponsivenessPrometheus
+    instances: []
+  module:
+    path: ""
+    params: {}
+  name: Collecting measurements
+tuningsets:
+- name: Uniform1qps
+  initialdelay: 0
+  qpsload:
+    qps: 1
+  randomizedload: null
+  steppedload: null
+  timelimitedload: null
+  randomizedtimelimitedload: null
+  parallelismlimitedload: null
+  globalqpsload: null
+chaosmonkey:
+  nodefailure: null
+  excludednodes: {}

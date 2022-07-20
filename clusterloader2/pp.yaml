@@ -1,0 +1,26 @@
+apiVersion: policy.karmada.io/v1alpha1
+kind: PropagationPolicy
+metadata:
+  name: {{ .Name}}
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+  placement:
+    clusterAffinity:
+      clusterNames:
+        - member1
+        - member2
+    replicaScheduling:
+      replicaDivisionPreference: Weighted
+      replicaSchedulingType: Divided
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames:
+                - member1
+            weight: 1
+          - targetCluster:
+              clusterNames:
+                - member2
+            weight: 1

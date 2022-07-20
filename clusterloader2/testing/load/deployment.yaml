@@ -1,0 +1,75 @@
+{{$HostNetworkMode := DefaultParam .CL2_USE_HOST_NETWORK_PODS false}}
+# Keep the CpuRequest/MemoryRequest request equal percentage of 1-core, 4GB node.
+# For now we're setting it to 0.5%.
+{{$CpuRequest := DefaultParam .CpuRequest "5m"}}
+{{$MemoryRequest := DefaultParam .MemoryRequest "20M"}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  labels:
+    group: load
+    svc: {{.SvcName}}-{{.Index}}
+spec:
+  replicas: {{RandIntRange .ReplicasMin .ReplicasMax}}
+  selector:
+    matchLabels:
+      name: {{.Name}}
+  template:
+    metadata:
+      labels:
+        group: load
+        name: {{.Name}}
+        svc: {{.SvcName}}-{{.Index}}
+    spec:
+      hostNetwork: {{$HostNetworkMode}}
+      containers:
+{{if .EnableDNSTests}}
+      # TODO need to push this image.
+      - image: gcr.io/k8s-staging-perf-tests/dnsperfgo:v1.2.0
+      # Fetches the dns server from /etc/resolv.conf and
+      # sends 1 query per second.
+      # With searchpath expansion, this is upto 12 queries per second.
+      # dnsperfgo has a default client timeout of 5s. It sends queries for 60s,
+      # then sleeps for 10s, to mimic bursts of DNS queries.
+        command:
+        - sh
+        - -c
+        - server=$(cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2); echo
+          "Using nameserver ${server}";
+          ./dnsperfgo -duration 60s -idle-duration 10s -inputfile /var/configmap/all-queries -qps 1;
+        name: {{.Name}}-dnsperf
+{{else}}
+      - image: k8s.gcr.io/pause:3.1
+        name: {{.Name}}
+{{end}}
+        resources:
+          requests:
+            cpu: {{$CpuRequest}}
+            memory: {{$MemoryRequest}}
+        volumeMounts:
+          - name: configmap
+            mountPath: /var/configmap
+          - name: secret
+            mountPath: /var/secret
+      terminationGracePeriodSeconds: 1
+      # Add not-ready/unreachable tolerations for 15 minutes so that node
+      # failure doesn't trigger pod deletion.
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 900
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 900
+      volumes:
+        - name: configmap
+          configMap:
+            name: {{.BaseName}}-{{.Index}}
+        - name: secret
+          secret:
+            secretName: {{.BaseName}}-{{.Index}}
+

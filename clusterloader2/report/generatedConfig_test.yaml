@@ -1,0 +1,101 @@
+name: test
+automanagednamespaces: 0
+namespace:
+  number: 1
+  prefix: test-dklg1m
+  deletestalenamespaces: false
+  deleteautomanagednamespaces: true
+  enableexistingnamespaces: false
+steps:
+- phases: []
+  measurements:
+  - method: APIResponsivenessPrometheus
+    params:
+      action: start
+    identifier: APIResponsivenessPrometheus
+    instances: []
+  - method: APIResponsivenessPrometheus
+    params:
+      action: start
+    identifier: APIResponsivenessPrometheusSimple
+    instances: []
+  - method: WaitForControlledPodsRunning
+    params:
+      action: start
+      apiVersion: apps/v1
+      kind: Deployment
+      labelSelector: group = test-deployment
+      operationTimeout: 150s
+    identifier: WaitForControlledPodsRunning
+    instances: []
+  module:
+    path: ""
+    params: {}
+  name: Start measurements
+- phases:
+  - namespacerange:
+      min: 1
+      max: 1
+      basename: null
+    replicaspernamespace: 1
+    tuningset: Uniform1qps
+    objectbundle:
+    - basename: test-deployment
+      objecttemplatepath: deployment.yaml
+      templatefillmap:
+        Replicas: 15000
+      listunknownobjectoptions: null
+    - basename: test-pp
+      objecttemplatepath: pp.yaml
+      templatefillmap:
+        Replicas: 1
+      listunknownobjectoptions: null
+  measurements: []
+  module:
+    path: ""
+    params: {}
+  name: Create deployment
+- phases: []
+  measurements:
+  - method: WaitForControlledPodsRunning
+    params:
+      action: gather
+    identifier: WaitForControlledPodsRunning
+    instances: []
+  module:
+    path: ""
+    params: {}
+  name: Wait for pods to be running
+- phases: []
+  measurements:
+  - method: APIResponsivenessPrometheus
+    params:
+      action: gather
+      enableViolations: true
+      summaryName: APIResponsivenessPrometheus_simple
+      useSimpleLatencyQuery: true
+    identifier: APIResponsivenessPrometheusSimple
+    instances: []
+  - method: APIResponsivenessPrometheus
+    params:
+      action: gather
+    identifier: APIResponsivenessPrometheus
+    instances: []
+  module:
+    path: ""
+    params: {}
+  name: Collecting measurements
+tuningsets:
+- name: Uniform1qps
+  initialdelay: 0
+  qpsload:
+    qps: 1
+  randomizedload: null
+  steppedload: null
+  timelimitedload: null
+  randomizedtimelimitedload: null
+  parallelismlimitedload: null
+  globalqpsload: null
+chaosmonkey:
+  nodefailure: null
+  excludednodes: {}

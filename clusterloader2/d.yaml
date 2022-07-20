@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-0
+  labels:
+    group: test-deployment
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      group: test-pod
+  template:
+    metadata:
+      labels:
+        group: test-pod
+    spec:
+      containers:
+      - image: nginx
+        name: test-0
